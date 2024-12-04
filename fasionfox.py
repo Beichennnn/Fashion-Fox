@@ -37,7 +37,7 @@ etsy_redirect_uri = etsy_keys["redirect"]
 
 def get_top_songs():
     """Function to get user's top songs."""
-    results = sp.current_user_top_tracks(limit=4)
+    results = sp.current_user_top_tracks(limit=3)
     songs = []
     for track in results['items']:
         track_name = track['name']
@@ -57,55 +57,102 @@ def analyze_song(song_index=0):
     track = results['items'][song_index]
     track_name = track['name']
     artist_name = track['artists'][0]['name']
-    
+
     # Check if 'genres' key exists and if it has values
     genre = track['album'].get('genres', [])
     if genre:
         genre = genre[0]
     else:
         genre = "Unknown"
-        
-    tempo = 120  # Placeholder tempo value, consider integrating an API that can fetch actual tempo
-    mood = "Happy"  # Placeholder mood value, consider using an analysis API for mood
 
-    # Generate a detailed description using OpenAI Azure
-    messages = [
-        {"role": "system", "content": "Answer the question suitable to use for dalle prompt."},
-        {"role": "user", "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre with a tempo of about {tempo} bpm, suggest an outfit style suitable for an adult."}
+    # Use OpenAI to determine the mood of the song
+    mood_prompt = [
+        {"role": "system", "content": "You are a music analyst. Given a song title, artist, genre, and tempo, describe the overall mood of the song."},
+        {"role": "user", "content": f"The song '{track_name}' by {artist_name} is in the {genre} genre. What is the overall mood of this song?"}
     ]
 
-    response = openai.ChatCompletion.create(
-        engine="GPT-4",
-        messages=messages
-    )
+    try:
+        mood_response = openai.ChatCompletion.create(
+            engine="GPT-4",
+            messages=mood_prompt
+        )
+        mood = mood_response.choices[0].message['content'].strip().capitalize()
+    except openai.error.OpenAIError as e:
+        print(f"Error determining song mood: {str(e)}")
+        mood = "Happy"  # Fallback mood in case of an error
 
-    outfit_style = response.choices[0].message['content'].strip()
-    return outfit_style
+    # Generate a detailed analysis including song and outfit suggestion based on the mood, with generalized high fashion references
+    messages = [
+        {
+            "role": "system",
+            "content": "Provides song information simply, then after a hyphen, give short fashionable and popular outfit suggestions inspired by high fashion magazines like Vogue, Elle, or Harper's Bazaar. Use luxurious descriptors without mentioning specific brands."
+        },
+        {
+            "role": "user",
+            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an outfit style that would look fashionable and runway-worthy, inspired by high fashion magazines."
+        }
+    ]
+
+    try:
+        response = openai.ChatCompletion.create(
+            engine="GPT-4",
+            messages=messages
+        )
+        full_analysis = response.choices[0].message['content'].strip()
+
+        # Extract only the outfit suggestion after the hyphen
+        if "-" in full_analysis:
+            _, outfit_recommendation = full_analysis.split("-", 1)
+            return outfit_recommendation.strip()
+        else:
+            # If no hyphen is found, return the full analysis for safety
+            return full_analysis
+
+    except openai.error.OpenAIError as e:
+        print(f"Error generating GPT response: {str(e)}")
+        return None
 
 
+def generate_outfit_image(description, retry_count=3):
+    """Generate an outfit image using DALL-E based on the outfit description, with retry mechanism."""
+    for attempt in range(retry_count):
+        try:
+            # Log the prompt for debugging
+            print(f"Attempt {attempt + 1}: Generated prompt for DALL-E: {description}")
 
-def generate_outfit_image(description):
-    """Generate an outfit image using DALL-E based on the outfit description."""
+            # Generate the image using the OpenAI API
+            response = openai.Image.create(
+                model="Dalle3",  # Adjust to the appropriate model version you're using
+                prompt=description,
+                n=1,
+                size="1024x1024"
+            )
 
-    response = openai.Image.create(
-        model="Dalle3",  # Assuming you want to use DALL-E 2; adjust accordingly
-        prompt=f"Fashion outfit that represents: {description}",
-        n=1,
-        size="1024x1024"  # You can specify the size as per the options available
-    )
+            # Extract the URL of the generated image
+            image_url = response['data'][0]['url']
 
-    # The URL of the generated image should be extracted from the response
-    image_url = response['data'][0]['url']
+            # Save the image locally
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            image_filename = f'outfit_{timestamp}.png'
+            image_path = os.path.join('static/images', image_filename)
 
-# Save the image locally
-    image_path = os.path.join('static', 'images', f'outfit_{datetime.now().strftime("%Y%m%d%H%M%S")}.png')
-    if not os.path.exists(os.path.join('static', 'images')):
-        os.makedirs(os.path.join('static', 'images'))
+            if not os.path.exists('static/images'):
+                os.makedirs('static/images')
 
-    image_data = requests.get(image_url).content
-    with open(image_path, 'wb') as file:
-        file.write(image_data)
+            image_data = requests.get(image_url).content
+            with open(image_path, 'wb') as file:
+                file.write(image_data)
 
-    return f"/{image_path}"  # Return the path relative to the static folder
+            return f"/static/images/{image_filename}"
+
+        except openai.error.InvalidRequestError as e:
+            # Log the failure and retry if necessary
+            print(f"Error generating image for description '{description}': {str(e)}")
+            if attempt == retry_count - 1:
+                return None  # If all attempts fail, return None
+
+    return None
+
+
 
 

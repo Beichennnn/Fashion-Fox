@@ -69,14 +69,19 @@ def generate_multiple_images():
         else:
             try:
                 image_path = generate_outfit_image(description)
-                cache[cache_key] = image_path
-                image_urls.append({"description": description, "image_url": image_path})
+                if image_path:
+                    cache[cache_key] = image_path
+                    image_urls.append({"description": description, "image_url": image_path})
+                else:
+                    image_urls.append({"description": description, "error": "Failed to generate image after retries"})
             except Exception as e:
                 # Logging the exception can help in debugging
                 print(f"Error generating image for description '{description}': {str(e)}")
                 image_urls.append({"description": description, "error": "Failed to generate image"})
 
     return jsonify(image_urls)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
