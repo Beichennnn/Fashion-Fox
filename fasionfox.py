@@ -5,6 +5,7 @@ import requests
 from datetime import datetime
 import openai
 import os
+from PIL import Image
 
 # Set up Azure OpenAI client with keys from environment variables
 openai.api_type = "azure"
@@ -69,7 +70,7 @@ def analyze_song(song_index=0):
 
     # Generate a detailed description using OpenAI Azure
     messages = [
-        {"role": "system", "content": "You are an assistant that provides detailed outfit suggestions based on music mood and style."},
+        {"role": "system", "content": "Answer the question suitable to use for dalle prompt."},
         {"role": "user", "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre with a tempo of about {tempo} bpm, suggest an outfit style suitable for an adult."}
     ]
 
@@ -83,72 +84,28 @@ def analyze_song(song_index=0):
 
 
 
-def exchange_code_for_token(authorization_code):
-    token_url = "https://api.etsy.com/v3/public/oauth/token"
-    data = {
-        "grant_type": "authorization_code",
-        "code": authorization_code,
-        "redirect_uri": etsy_redirect_uri,
-        "client_id": etsy_client_id,
-        "client_secret": etsy_client_secret
-    }
+def generate_outfit_image(description):
+    """Generate an outfit image using DALL-E based on the outfit description."""
 
-    response = requests.post(token_url, data=data)
-    print("Token Exchange Response:", response.status_code, response.text)
-    if response.status_code == 200:
-        token_info = response.json()
-        return token_info["access_token"], token_info["refresh_token"]
-    else:
-        return None, None
-    
-def refresh_access_token():
-    token_url = "https://api.etsy.com/v3/public/oauth/token"
-    data = {
-        "grant_type": "refresh_token",
-        "refresh_token": refresh_token,
-        "client_id": etsy_client_id,
-        "client_secret": etsy_client_secret,
-    }
+    response = openai.Image.create(
+        model="Dalle3",  # Assuming you want to use DALL-E 2; adjust accordingly
+        prompt=f"Fashion outfit that represents: {description}",
+        n=1,
+        size="1024x1024"  # You can specify the size as per the options available
+    )
 
-    response = requests.post(token_url, data=data)
-    print("Token Refresh Response:", response.status_code, response.text)
-    if response.status_code == 200:
-        token_info = response.json()
-        return token_info["access_token"]
-    else:
-        return None
+    # The URL of the generated image should be extracted from the response
+    image_url = response['data'][0]['url']
 
-def get_outfit_suggestions(outfit_style):
-    """Function to get outfit suggestions from Etsy based on the analyzed song."""
-    global access_token
-    if not access_token:
-        access_token = refresh_access_token()  # Refresh the token if not set
+# Save the image locally
+    image_path = os.path.join('static', 'images', f'outfit_{datetime.now().strftime("%Y%m%d%H%M%S")}.png')
+    if not os.path.exists(os.path.join('static', 'images')):
+        os.makedirs(os.path.join('static', 'images'))
 
-    url = "https://openapi.etsy.com/v3/application/listings/active"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "x-api-key": etsy_client_id,
-    }
-    params = {
-        "keywords": f"{outfit_style} adult clothing",  # Use the style from OpenAI and focus on adult clothing
-        "limit": 2,
-        "sort_on": "score",
-        "currency": "GBP",
-    }
+    image_data = requests.get(image_url).content
+    with open(image_path, 'wb') as file:
+        file.write(image_data)
 
-    response = requests.get(url, headers=headers, params=params)
+    return f"/{image_path}"  # Return the path relative to the static folder
 
-    if response.status_code == 200:
-        results = response.json().get("results", [])
-        outfits = []
-        for item in results:
-            outfits.append({
-                "title": item.get("title"),
-                "price": item.get("price"),
-                "url": item.get("url"),
-                "image_url": item.get("images", [])[0].get("url_fullxfull") if item.get("images") else None
-            })
-        return outfits
-    else:
-        return {"error": "Failed to fetch outfits based on song style."}
 

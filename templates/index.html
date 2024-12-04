@@ -21,90 +21,106 @@
 <body>
     <canvas id="canvas3d"></canvas>
     <div id="song-analysis-container" style="padding: 20px;"></div>
-    <script type="module">
-        import { Application } from '/static/js/runtime.js';
+    <div id="fashion-container" style="padding: 20px;"></div> <!-- Container for DALL-E generated images -->
 
-        const canvas = document.getElementById('canvas3d');
-        const app = new Application(canvas);
-        let songsList = [];  // Store songs list
+<script type="module">
+  import { Application } from '/static/js/runtime.js';
 
-        app.load('/static/scenes/scene.splinecode').then(() => {
-            app.addEventListener('mouseDown', (e) => {
-                if (e.target.name === 'music-hotspot') {
-                    fetch('/top-songs')
+  const canvas = document.getElementById('canvas3d');
+  const app = new Application(canvas);
+
+  app.load('/static/scenes/scene.splinecode').then(() => {
+      app.addEventListener('mouseDown', (e) => {
+          if (e.target.name === 'music-hotspot') {
+              fetch('/top-songs')
+                  .then(response => response.json())
+                  .then(songs => {
+                      let songListHtml = songs.map((song, index) => `
+                          ${index + 1}. ${song.track_name} by ${song.artist_name}<br>
+                      `).join('');
+                      Swal.fire({
+                          title: 'Your Top Songs',
+                          html: `<div>${songListHtml}</div>`,
+                          showCloseButton: true,
+                          focusConfirm: false
+                      });
+                  })
+                  .catch(error => console.error('Error fetching top songs:', error));
+          } else if (e.target.name === 'coffee-hotspot') {
+              analyzeAllSongs();
+          } else if (e.target.name === 'fasion-hotspot') {
+              getOutfits();
+          }
+      });
+  });
+
+  function analyzeAllSongs() {
+      fetch('/top-songs')
+          .then(response => response.json())
+          .then(songs => {
+              Promise.all(songs.map((song, index) =>
+                  fetch(`/song-analysis?songIndex=${index}`)
+              ))
+              .then(responses => Promise.all(responses.map(res => res.json())))
+              .then(allData => {
+                  let allAnalysisHTML = allData.map((data, index) => `
+                      <div style="margin-top: 20px;">
+                          <h3>Analysis for ${songs[index].track_name} by ${songs[index].artist_name}:</h3>
+                          <p>${data.description}</p>
+                      </div>
+                  `).join('');
+                  Swal.fire({
+                      title: 'Song Analyses',
+                      html: `<div>${allAnalysisHTML}</div>`,
+                      showCloseButton: true,
+                      focusConfirm: false
+                  });
+              });
+          })
+          .catch(error => console.error('Error in song analysis:', error));
+  }
+
+  function getOutfits() {
+    fetch('/top-songs')
+        .then(response => response.json())
+        .then(songs => {
+            // Gather descriptions for all songs
+            return Promise.all(
+                songs.map((song, index) => 
+                    fetch(`/song-analysis?songIndex=${index}`)
                         .then(response => response.json())
-                        .then(songs => {
-                            songsList = songs;
-                            let songListHtml = songs.map((song, index) => `
-                                ${index + 1}. ${song.track_name} by ${song.artist_name}<br>
-                            `).join('');
-                            Swal.fire({
-                                title: 'Your Top Songs',
-                                html: `<div>${songListHtml}</div>`,
-                                showCloseButton: true,
-                                focusConfirm: false
-                            });
-                        })
-                        .catch(error => console.error('Error fetching top songs:', error));
-                } else if (e.target.name === 'coffee-hotspot') {
-                    if (songsList.length > 0) {
-                        analyzeAllSongs();
-                    } else {
-                        Swal.fire({
-                            title: 'No Songs Available',
-                            text: 'Please click on the music hotspot to load songs first.',
-                            showCloseButton: true,
-                            focusConfirm: false
-                        });
-                    }
-                } else if (e.target.name === 'fasion-hotspot') {
-                    getOutfits();
-                }
+                        .then(data => data.description)
+                )
+            );
+        })
+        .then(descriptions => {
+            // Send descriptions to generate outfit images in batch
+            return fetch('/generate-outfit-images', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ descriptions })
             });
-        });
+        })
+        .then(response => response.json())
+        .then(allImagesData => {
+            // Create HTML for all the images
+            let allImagesHTML = allImagesData.map((imageData, index) => `
+                <div style="margin-bottom: 20px;">
+                    <h4>Outfit for ${index + 1}:</h4>
+                    ${imageData.image_url ? `<img src="${imageData.image_url}" alt="Generated Fashion Image" style="width: auto; max-height: 400px;">` : `<p>Error: ${imageData.error}</p>`}
+                </div>
+            `).join('');
 
-        function analyzeAllSongs() {
-            Promise.all(songsList.map(song => fetch(`/song-analysis?songIndex=${songsList.indexOf(song)}`)))
-                .then(responses => Promise.all(responses.map(res => res.json())))
-                .then(allData => {
-                    const analysisContainer = document.getElementById('song-analysis-container');
-                    let allAnalysisHTML = allData.map((data, index) => `
-                        <div style="margin-top: 20px;">
-                            <h3>Analysis for ${songsList[index].track_name} by ${songsList[index].artist_name}:</h3>
-                            <p>${data.outfit_description}</p>
-                        </div>
-                    `).join('');
-                    Swal.fire({
-                        title: 'Song Analyses',
-                        html: `<div>${allAnalysisHTML}</div>`,
-                        showCloseButton: true,
-                        focusConfirm: false
-                    });
-                })
-                .catch(error => console.error('Error fetching song analyses:', error));
-        }
+            Swal.fire({
+                title: 'Generated Fashion for All Songs',
+                html: `<div>${allImagesHTML}</div>`,
+                showCloseButton: true,
+                focusConfirm: false
+            });
+        })
+        .catch(error => console.error('Error fetching generated outfits:', error));
+  }
 
-        function getOutfits() {
-            fetch('/fasion-hotspot')
-                .then(response => response.json())
-                .then(outfits => {
-                    let outfitList = outfits.map(outfit => `
-                        <div style="margin-bottom: 15px;">
-                            <img src="${outfit.image_url}" alt="${outfit.title}" style="width: 100px; height: 100px;"><br>
-                            <strong>${outfit.title}</strong><br>
-                            Price: ${outfit.price} GBP<br>
-                            <a href="${outfit.url}" target="_blank">View on Etsy</a>
-                        </div>
-                    `).join('');
-                    Swal.fire({
-                        title: 'Outfit Recommendations',
-                        html: `<div>${outfitList}</div>`,
-                        showCloseButton: true,
-                        focusConfirm: false
-                    });
-                })
-                .catch(error => console.error('Error fetching outfit suggestions:', error));
-        }
-    </script>
-</body>
-</html>
+</script>
