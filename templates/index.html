@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        html, body {
+            height: 100%;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas3d"></canvas>
+    <div id="song-analysis-container" style="padding: 20px;"></div>
+    <script type="module">
+        import { Application } from '/static/js/runtime.js';
+
+        const canvas = document.getElementById('canvas3d');
+        const app = new Application(canvas);
+        let songsList = [];  // Store songs list
+
+        app.load('/static/scenes/scene.splinecode').then(() => {
+            app.addEventListener('mouseDown', (e) => {
+                if (e.target.name === 'music-hotspot') {
+                    fetch('/top-songs')
+                        .then(response => response.json())
+                        .then(songs => {
+                            songsList = songs;
+                            let songListHtml = songs.map((song, index) => `
+                                ${index + 1}. ${song.track_name} by ${song.artist_name}<br>
+                            `).join('');
+                            Swal.fire({
+                                title: 'Your Top Songs',
+                                html: `<div>${songListHtml}</div>`,
+                                showCloseButton: true,
+                                focusConfirm: false
+                            });
+                        })
+                        .catch(error => console.error('Error fetching top songs:', error));
+                } else if (e.target.name === 'coffee-hotspot') {
+                    if (songsList.length > 0) {
+                        analyzeAllSongs();
+                    } else {
+                        Swal.fire({
+                            title: 'No Songs Available',
+                            text: 'Please click on the music hotspot to load songs first.',
+                            showCloseButton: true,
+                            focusConfirm: false
+                        });
+                    }
+                } else if (e.target.name === 'fasion-hotspot') {
+                    getOutfits();
+                }
+            });
+        });
+
+        function analyzeAllSongs() {
+            Promise.all(songsList.map(song => fetch(`/song-analysis?songIndex=${songsList.indexOf(song)}`)))
+                .then(responses => Promise.all(responses.map(res => res.json())))
+                .then(allData => {
+                    const analysisContainer = document.getElementById('song-analysis-container');
+                    let allAnalysisHTML = allData.map((data, index) => `
+                        <div style="margin-top: 20px;">
+                            <h3>Analysis for ${songsList[index].track_name} by ${songsList[index].artist_name}:</h3>
+                            <p>${data.outfit_description}</p>
+                        </div>
+                    `).join('');
+                    Swal.fire({
+                        title: 'Song Analyses',
+                        html: `<div>${allAnalysisHTML}</div>`,
+                        showCloseButton: true,
+                        focusConfirm: false
+                    });
+                })
+                .catch(error => console.error('Error fetching song analyses:', error));
+        }
+
+        function getOutfits() {
+            fetch('/fasion-hotspot')
+                .then(response => response.json())
+                .then(outfits => {
+                    let outfitList = outfits.map(outfit => `
+                        <div style="margin-bottom: 15px;">
+                            <img src="${outfit.image_url}" alt="${outfit.title}" style="width: 100px; height: 100px;"><br>
+                            <strong>${outfit.title}</strong><br>
+                            Price: ${outfit.price} GBP<br>
+                            <a href="${outfit.url}" target="_blank">View on Etsy</a>
+                        </div>
+                    `).join('');
+                    Swal.fire({
+                        title: 'Outfit Recommendations',
+                        html: `<div>${outfitList}</div>`,
+                        showCloseButton: true,
+                        focusConfirm: false
+                    });
+                })
+                .catch(error => console.error('Error fetching outfit suggestions:', error));
+        }
+    </script>
+</body>
+</html>

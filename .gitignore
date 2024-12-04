@@ -1,0 +1,8 @@
+venv/
+credentials/
+.cache*
+etsy_api.json
+spotify_keys.json
+refresh_token.txt
+__pycache__/
+process.wasm
