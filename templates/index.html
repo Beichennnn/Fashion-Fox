@@ -22,104 +22,260 @@
     <canvas id="canvas3d"></canvas>
     <div id="song-analysis-container" style="padding: 20px;"></div>
     <div id="fashion-container" style="padding: 20px;"></div> <!-- Container for DALL-E generated images -->
-
-<script type="module">
-  import { Application } from '/static/js/runtime.js';
-
-  const canvas = document.getElementById('canvas3d');
-  const app = new Application(canvas);
-
-  app.load('/static/scenes/scene.splinecode').then(() => {
-      app.addEventListener('mouseDown', (e) => {
-          if (e.target.name === 'music-hotspot') {
-              fetch('/top-songs')
-                  .then(response => response.json())
-                  .then(songs => {
-                      let songListHtml = songs.map((song, index) => `
-                          ${index + 1}. ${song.track_name} by ${song.artist_name}<br>
-                      `).join('');
-                      Swal.fire({
-                          title: 'Your Top Songs',
-                          html: `<div>${songListHtml}</div>`,
-                          showCloseButton: true,
-                          focusConfirm: false
-                      });
-                  })
-                  .catch(error => console.error('Error fetching top songs:', error));
-          } else if (e.target.name === 'coffee-hotspot') {
-              analyzeAllSongs();
-          } else if (e.target.name === 'fasion-hotspot') {
-              getOutfits();
-          }
-      });
-  });
-
-  function analyzeAllSongs() {
-      fetch('/top-songs')
-          .then(response => response.json())
-          .then(songs => {
-              Promise.all(songs.map((song, index) =>
-                  fetch(`/song-analysis?songIndex=${index}`)
-              ))
-              .then(responses => Promise.all(responses.map(res => res.json())))
-              .then(allData => {
-                  let allAnalysisHTML = allData.map((data, index) => `
-                      <div style="margin-top: 20px;">
-                          <h3>Analysis for ${songs[index].track_name} by ${songs[index].artist_name}:</h3>
-                          <p>${data.description}</p>
-                      </div>
-                  `).join('');
-                  Swal.fire({
-                      title: 'Song Analyses',
-                      html: `<div>${allAnalysisHTML}</div>`,
-                      showCloseButton: true,
-                      focusConfirm: false
-                  });
-              });
-          })
-          .catch(error => console.error('Error in song analysis:', error));
-  }
-
-  function getOutfits() {
-    fetch('/top-songs')
-        .then(response => response.json())
-        .then(songs => {
-            // Gather descriptions for all songs
-            return Promise.all(
-                songs.map((song, index) => 
-                    fetch(`/song-analysis?songIndex=${index}`)
-                        .then(response => response.json())
-                        .then(data => data.description)
-                )
-            );
-        })
-        .then(descriptions => {
-            // Send descriptions to generate outfit images in batch
-            return fetch('/generate-outfit-images', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ descriptions })
+    <script type="module">
+        import { Application } from '/static/js/runtime.js';
+    
+        const canvas = document.getElementById('canvas3d');
+        const app = new Application(canvas);
+        let analyzedDescriptions = []; // Store analyzed descriptions here
+    
+        // Defining SweetAlert mixin with Bootstrap-styled buttons
+        const swalWithBootstrapButtons = Swal.mixin({
+            customClass: {
+                confirmButton: 'btn btn-primary',
+                cancelButton: 'btn btn-secondary',
+            },
+            buttonsStyling: false,
+        });
+    
+        app.load('/static/scenes/scene.splinecode').then(() => {
+            app.addEventListener('mouseDown', (e) => {
+                if (e.target.name === 'music-hotspot') {
+                    // Trigger for the music hotspot - only show top songs without selecting them
+                    showTopSongs();
+                } else if (e.target.name === 'coffee-hotspot') {
+                    // Trigger for the coffee hotspot - shows song selection for analysis
+                    showSongSelectionWithOptions();
+                } else if (e.target.name === 'fasion-hotspot') {
+                    // Trigger for the fashion hotspot - generate outfit image from analyzed descriptions
+                    showOutfitSelectionButtons();
+                }
             });
-        })
-        .then(response => response.json())
-        .then(allImagesData => {
-            // Create HTML for all the images
-            let allImagesHTML = allImagesData.map((imageData, index) => `
-                <div style="margin-bottom: 20px;">
-                    <h4>Outfit for ${index + 1}:</h4>
-                    ${imageData.image_url ? `<img src="${imageData.image_url}" alt="Generated Fashion Image" style="width: auto; max-height: 400px;">` : `<p>Error: ${imageData.error}</p>`}
-                </div>
-            `).join('');
-
+        });
+    
+        function showTopSongs() {
+            // Show top songs without selection buttons
+            fetch('/top-songs')
+                .then(response => response.json())
+                .then(songs => {
+                    let songListHtml = songs.map((song, index) => `
+                        ${index + 1}. ${song.track_name} by ${song.artist_name}<br>
+                    `).join('');
+                    swalWithBootstrapButtons.fire({
+                        title: 'Your Top Songs',
+                        html: `<div>${songListHtml}</div>`,
+                        showCloseButton: true,
+                        focusConfirm: false
+                    });
+                })
+                .catch(error => console.error('Error fetching top songs:', error));
+        }
+    
+        function showSongSelectionWithOptions() {
+            // Show loading animation while fetching the songs
             Swal.fire({
-                title: 'Generated Fashion for All Songs',
-                html: `<div>${allImagesHTML}</div>`,
+                title: "Loading...",
+                html: `
+                    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                        <img src="/static/images/fox-web.gif" alt="Loading GIF" style="width: 60px; height: auto;">
+                    </div>
+                    <p>Please wait while we fetch the songs...</p>
+                `,
+                width: 400,
+                padding: "2em",
+                color: "#716add",
+                background: "#fff",
+                backdrop: `
+                    rgba(0,0,123,0.4)
+                `,
+                didOpen: () => {
+                    Swal.showLoading(); // Show a loading indicator while waiting
+                }
+            });
+    
+            // Fetch the songs
+            fetch('/top-songs')
+                .then(response => response.json())
+                .then(songs => {
+                    // Close loading popup
+                    Swal.close();
+    
+                    // Add gender and season selection to the song selection process
+                    swalWithBootstrapButtons.fire({
+                        title: 'Select a Song',
+                        html: `
+                            <div>
+                                ${songs.map((song, index) => `
+                                    <button class="btn btn-info song-btn" onclick="selectOptionsAndAnalyze(${index})">${song.track_name} by ${song.artist_name}</button>
+                                `).join('')}
+                            </div>
+                        `,
+                        showCloseButton: true,
+                        showCancelButton: true,
+                        cancelButtonText: 'Done',
+                        focusConfirm: false
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching top songs:', error);
+                    Swal.fire("Error", "Failed to fetch songs. Please try again later.", "error");
+                });
+        }
+    
+        window.selectOptionsAndAnalyze = function(songIndex) {
+            // Show options for gender and season selection
+            swalWithBootstrapButtons.fire({
+                title: 'Choose Options',
+                html: `
+                    <label for="gender">Gender:</label>
+                    <select id="gender" class="swal2-input">
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="unisex">Unisex</option>
+                    </select>
+                    <label for="season">Season:</label>
+                    <select id="season" class="swal2-input">
+                        <option value="summer">Summer</option>
+                        <option value="winter">Winter</option>
+                        <option value="spring">Spring</option>
+                        <option value="fall">Fall</option>
+                    </select>
+                `,
                 showCloseButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Analyze',
+                cancelButtonText: 'Cancel',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const gender = document.getElementById('gender').value;
+                    const season = document.getElementById('season').value;
+                    analyzeSong(songIndex, season, gender);
+                }
+            });
+        };
+    
+        window.analyzeSong = function(songIndex, season, gender) {
+            // Show loading animation while analyzing the song
+            Swal.fire({
+                title: "Analyzing...",
+                html: `
+                    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                        <img src="/static/images/fox-web.gif" alt="Loading GIF" style="width: 80px; height: auto;">
+                    </div>
+                    <p>Analyzing the selected song...</p>
+                `,
+                width: 400,
+                padding: "2em",
+                color: "#716add",
+                background: "#fff",
+                backdrop: `
+                    rgba(0,0,123,0.4)
+                `,
+                didOpen: () => {
+                    Swal.showLoading(); // Show a loading indicator while waiting
+                }
+            });
+    
+            // Fetch song analysis
+            fetch(`/song-analysis?songIndex=${songIndex}&season=${season}&gender=${gender}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Close loading popup
+                    Swal.close();
+    
+                    // Store the analyzed description
+                    analyzedDescriptions[songIndex] = data.description;
+    
+                    swalWithBootstrapButtons.fire({
+                        title: 'Song Analysis',
+                        html: `<div><p>${data.description}</p></div>`,
+                        showCloseButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: 'Back',
+                        cancelButtonText: 'Done',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            showSongSelectionWithOptions(); // Go back to song selection if "Back" is clicked
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching song analysis:', error);
+                    Swal.fire("Error", "Failed to analyze song. Please try again later.", "error");
+                });
+        };
+    
+        function showOutfitSelectionButtons() {
+            // Show buttons to select from the analyzed songs
+            if (analyzedDescriptions.length === 0) {
+                Swal.fire("No Songs Analyzed", "Please analyze a song before selecting an outfit option.", "warning");
+                return;
+            }
+    
+            let outfitButtons = analyzedDescriptions.map((description, index) => `
+                <button class="btn btn-info outfit-btn" onclick="generateOutfitImage(${index})">Outfit for: Song ${index + 1}</button>
+            `).join('');
+            swalWithBootstrapButtons.fire({
+                title: 'Select a Song for Outfit Generation',
+                html: `<div>${outfitButtons}</div>`,
+                showCloseButton: true,
+                showCancelButton: true,
+                cancelButtonText: 'Done',
                 focusConfirm: false
             });
-        })
-  }
-
-</script>
+        }
+    
+        window.generateOutfitImage = function(songIndex) {
+            // Show loading animation while generating outfit image
+            Swal.fire({
+                title: "Generating Outfit...",
+                html: `
+                    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                        <img src="/static/images/minecraft-fox-web.gif" alt="Loading GIF" style="width: 80px; height: auto;">
+                    </div>
+                    <p>Generating an outfit based on the selected song...</p>
+                `,
+                width: 400,
+                padding: "2em",
+                color: "#716add",
+                background: "#fff",
+                backdrop: `
+                    rgba(0,0,123,0.4)
+                `,
+                didOpen: () => {
+                    Swal.showLoading(); // Show a loading indicator while waiting
+                }
+            });
+    
+            // Fetch song analysis and generate outfit image
+            const description = analyzedDescriptions[songIndex];
+            fetch(`/generate-outfit-image?description=${encodeURIComponent(description)}`)
+                .then(response => response.json())
+                .then(imageData => {
+                    // Close loading popup
+                    Swal.close();
+    
+                    if (imageData.image_url) {
+                        swalWithBootstrapButtons.fire({
+                            title: 'Generated Fashion Image',
+                            html: `<img src="${imageData.image_url}" alt="Fashion Image" style="width: auto; height: 300px;">`,
+                            showCloseButton: true,
+                            showCancelButton: true,
+                            confirmButtonText: 'Back',
+                            cancelButtonText: 'Done',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                showOutfitSelectionButtons(); // Go back to outfit selection if "Back" is clicked
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching generated outfit:', error);
+                    Swal.fire("Error", "Failed to generate outfit. Please try again later.", "error");
+                });
+        };
+    </script>
+    
+</body>
+</html>

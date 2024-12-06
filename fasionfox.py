@@ -24,17 +24,6 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     scope="user-top-read"
 ))
 
-with open("etsy_api.json", "r") as etsy_file:
-    etsy_keys = json.load(etsy_file)
-
-access_token = None
-with open("refresh_token.txt") as refresh_code:
-    refresh_token = refresh_code.read()
-
-etsy_client_id = etsy_keys["client_id"]
-etsy_client_secret = etsy_keys["client_secret"]
-etsy_redirect_uri = etsy_keys["redirect"]
-
 def get_top_songs():
     """Function to get user's top songs."""
     results = sp.current_user_top_tracks(limit=3)
@@ -48,8 +37,8 @@ def get_top_songs():
         })
     return songs
 
-def analyze_song(song_index=0):
-    """Function to analyze the user's favorite tracks and generate outfit suggestions based on the song index."""
+def analyze_song(song_index=0, season="Summer", gender="Female"):
+    """Function to analyze the user's favorite tracks and generate outfit suggestions based on the song index, season, and gender."""
     results = sp.current_user_top_tracks(limit=10)  # Ensure you fetch enough songs
     if song_index >= len(results['items']):
         return "Invalid song index"
@@ -81,7 +70,7 @@ def analyze_song(song_index=0):
         print(f"Error determining song mood: {str(e)}")
         mood = "Happy"  # Fallback mood in case of an error
 
-    # Generate a detailed analysis including song and outfit suggestion based on the mood, with generalized high fashion references
+    # Generate a detailed analysis including song and outfit suggestion based on the mood, season, and gender
     messages = [
         {
             "role": "system",
@@ -89,7 +78,7 @@ def analyze_song(song_index=0):
         },
         {
             "role": "user",
-            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an outfit style that would look fashionable and runway-worthy, inspired by high fashion magazines."
+            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an short outfit style for a {gender} during the {season} season that would look fashionable and runway-worthy, inspired by high fashion magazines."
         }
     ]
 
@@ -122,7 +111,7 @@ def generate_outfit_image(description, retry_count=3):
 
             # Generate the image using the OpenAI API
             response = openai.Image.create(
-                model="Dalle3",  # Adjust to the appropriate model version you're using
+                model="Dalle3", 
                 prompt=description,
                 n=1,
                 size="1024x1024"
@@ -152,7 +141,3 @@ def generate_outfit_image(description, retry_count=3):
                 return None  # If all attempts fail, return None
 
     return None
-
-
-
-
