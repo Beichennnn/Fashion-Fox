@@ -7,3 +7,4 @@ refresh_token.txt
 __pycache__/
 process.wasm
 static/images/*.png
+GoogleCustomSearch_api.txt
