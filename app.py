@@ -57,10 +57,11 @@ def song_analysis():
     """Endpoint to analyze the user's favorite track and generate outfit suggestions based on season and gender."""
     try:
         song_index = request.args.get('songIndex', default=0, type=int)
+        song_name = get_top_songs()[song_index]["track_name"]
         season = request.args.get('season', default='Summer', type=str)
         gender = request.args.get('gender', default='Female', type=str)
         description = analyze_song(song_index, season, gender)
-        return jsonify({"description": description})
+        return jsonify({"description": description, "songName": song_name})
     except Exception as e:
         print(f"Error analyzing song: {str(e)}")
         return jsonify({"error": "Failed to analyze song"}), 500

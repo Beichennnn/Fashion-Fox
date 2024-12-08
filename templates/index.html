@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="static/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
@@ -19,6 +19,10 @@
     </style>
 </head>
 <body>
+    <header class="transparent-header">
+        <h1>Welcome to Outfit Explorer</h1>
+        <p>Find outfit inspiration based on your favorite songs!</p>
+    </header>
     <canvas id="canvas3d"></canvas>
     <div id="song-analysis-container" style="padding: 20px;"></div>
     <div id="fashion-container" style="padding: 20px;"></div> <!-- Container for DALL-E generated images -->
@@ -75,7 +79,7 @@
             Swal.fire({
                 title: "Loading...",
                 html: `<div style="display: flex; justify-content: center; margin-bottom: 20px;">
-                            <img src="/static/images/fox-web.gif" alt="Loading GIF" style="width: 60px; height: auto;">
+                            <img src="/static/images/fox-web.gif" alt="Loading GIF" style="width: 80px; height: auto;">
                         </div>
                         <p>Please wait while we fetch the songs...</p>`,
                 width: 400,
@@ -89,42 +93,51 @@
             });
 
             fetch('/top-songs')
-                .then(response => response.json())
-                .then(songs => {
-                    Swal.close();
-                    swalWithBootstrapButtons.fire({
+                .then((response) => response.json())
+                .then((songs) => {
+                    const songListHtml = songs
+                        .map(
+                            (song, index) => `
+                            <button class="btn song-select-btn" onclick="selectOptionsAndAnalyze(${index})">
+                                ${song.track_name} by ${song.artist_name}
+                            </button>`
+                        )
+                        .join('');
+
+                    Swal.fire({
                         title: 'Select a Song',
-                        html: `<div>${songs.map((song, index) => `
-                            <button class="btn btn-info song-btn" onclick="selectOptionsAndAnalyze(${index})">${song.track_name} by ${song.artist_name}</button>
-                        `).join('')}</div>`,
+                        html: `<div class="swal2-song-list">${songListHtml}</div>`,
                         showCloseButton: true,
                         showCancelButton: true,
-                        cancelButtonText: 'Done',
-                        focusConfirm: false
+                        cancelButtonText: 'Cancel',
                     });
                 })
-                .catch(error => {
+                .catch((error) => {
                     console.error('Error fetching top songs:', error);
-                    Swal.fire("Error", "Failed to fetch songs. Please try again later.", "error");
+                    Swal.fire('Error', 'Failed to fetch songs. Please try again later.', 'error');
                 });
         }
     
-        window.selectOptionsAndAnalyze = function(songIndex) {
+        window.selectOptionsAndAnalyze = function (songIndex) {
             swalWithBootstrapButtons.fire({
                 title: 'Choose Options',
-                html: `<label for="gender">Gender:</label>
-                       <select id="gender" class="swal2-input">
-                           <option value="female">Female</option>
-                           <option value="male">Male</option>
-                           <option value="unisex">Unisex</option>
-                       </select>
-                       <label for="season">Season:</label>
-                       <select id="season" class="swal2-input">
-                           <option value="summer">Summer</option>
-                           <option value="winter">Winter</option>
-                           <option value="spring">Spring</option>
-                           <option value="fall">Fall</option>
-                       </select>`,
+                html: `
+                    <div class="swal2-options-container">
+                        <label for="gender" class="swal2-options-label">Gender:</label>
+                        <select id="gender" class="swal2-options-select">
+                            <option value="female">Female</option>
+                            <option value="male">Male</option>
+                            <option value="unisex">Unisex</option>
+                        </select>
+                        <label for="season" class="swal2-options-label">Season:</label>
+                        <select id="season" class="swal2-options-select">
+                            <option value="summer">Summer</option>
+                            <option value="winter">Winter</option>
+                            <option value="spring">Spring</option>
+                            <option value="fall">Fall</option>
+                        </select>
+                    </div>
+                `,
                 showCloseButton: true,
                 showCancelButton: true,
                 confirmButtonText: 'Analyze',
@@ -137,6 +150,7 @@
                 }
             });
         };
+
     
         window.analyzeSong = function(songIndex, season, gender) {
             Swal.fire({
@@ -163,7 +177,8 @@
                         description: data.description,
                         songIndex: songIndex,
                         season: season,
-                        gender: gender
+                        gender: gender,
+                        songName: data.songName
                     };
 
                     swalWithBootstrapButtons.fire({
@@ -192,7 +207,7 @@
             }
 
             let outfitButtons = analyzedDescriptions.map((data, index) => `
-                <button class="btn btn-info outfit-btn" onclick="generateOutfitImage(${index})">Outfit for: Song ${index + 1}</button>
+                <button class="btn btn-info outfit-btn" onclick="generateOutfitImage(${index})">Outfit for: Song ${data.songName}</button>
             `).join('');
 
             swalWithBootstrapButtons.fire({
@@ -255,21 +270,23 @@
     
         window.saveToGallery = function(imageUrl, dataIndex) {
             const { songIndex, season, gender } = analyzedDescriptions[dataIndex];
+            const songName = analyzedDescriptions[dataIndex]?.songName || `Song ${songIndex + 1}`; // Default to a placeholder if songName is not available
             generatedImages.push({
                 imageUrl: imageUrl,
-                songName: `Song ${songIndex + 1}`,
+                songName: songName,
                 season: season,
                 gender: gender
             });
 
             Swal.fire({
                 title: "Saved to Gallery",
-                text: `Outfit for ${generatedImages[generatedImages.length - 1].songName} (${season}, ${gender}) saved!`,
+                text: `Outfit for ${songName} (${season}, ${gender}) saved!`,
                 icon: "success",
                 timer: 1500,
                 showConfirmButton: false
             });
-        }
+        };
+
 
         function showGeneratedImagesGallery() {
             if (generatedImages.length === 0) {
@@ -299,13 +316,10 @@
             const searchQuery = encodeURIComponent(imageUrl);
             const searchUrl = `https://lens.google.com/uploadbyurl?url=${searchQuery}`;
             window.open(searchUrl, '_blank');
-            // Open a new tab with the Google search results
-            //searchByImage(searchQuery)
         };
     </script>
 </body>
 </html>
-
 
 
 

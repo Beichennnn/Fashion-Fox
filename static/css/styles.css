@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Sour+Gummy&display=swap');
+
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Sour Gummy', sans-serif;
+}
+/* Apply font to all elements */
+body, html, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video, button, textarea, select, option {
+    font-family: 'Sour Gummy', sans-serif;
+}
+
+
+button, input, textarea {
+    font-family: 'Sour Gummy', sans-serif;
+}
+
+/* Transparent Header */
+.transparent-header {
+    position: absolute; /* Keeps it over the canvas */
+    top: 0;
+    left: 0;
+    width: 100%; /* Full width */
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent black background */
+    color: white; /* Text color */
+    text-align: left;
+    z-index: 10; /* Ensures it appears above the canvas */
+    font-family: 'Sour Gummy', sans-serif; /* Use your preferred font */
+}
+
+.transparent-header h1 {
+    font-size: 2rem;
+    margin: 0;
+}
+
+.transparent-header p {
+    font-size: 1.2rem;
+    margin: 0;
+    opacity: 0.8; /* Slightly dim the subheading text */
+}
+
+
+/* Styling for Song Selection Buttons */
+.song-select-btn {
+    font-size: 1rem; /* Adjust the font size */
+    padding: 5px 10px; /* Adjust padding for larger clickable area */
+    margin: 3px 0; /* Add spacing between buttons */
+    border: 1px solid #ccc; /* Add a border for better visibility */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #f8f9fa; /* Light gray background */
+    color: #333; /* Dark text for better readability */
+    width: 100%; /* Make buttons full-width within the container */
+    text-align: center; /* Center the text */
+    cursor: pointer; /* Add pointer cursor on hover */
+    transition: all 0.2s ease; /* Smooth transition for hover effect */
+}
+
+/* Hover Effect for Song Selection Buttons */
+.song-select-btn:hover {
+    background-color: #e2e6ea; /* Slightly darker background on hover */
+    color: #007bff; /* Change text color on hover */
+    border-color: #007bff; /* Highlight border on hover */
+}
+
+/* Styling for Song List Container */
+.swal2-song-list {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    align-items: stretch; /* Stretch buttons to fill the container */
+    gap: 10px; /* Add spacing between buttons */
+    max-height: 300px; /* Limit height for large lists */
+    overflow-y: auto; /* Add scroll if the list is too long */
+    padding: 10px; /* Add padding inside the list container */
+    border: 1px solid #ccc; /* Light border around the container */
+    border-radius: 5px; /* Rounded corners for the container */
+    background-color: #fff; /* White background */
+}

@@ -26,7 +26,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
 
 def get_top_songs():
     """Function to get user's top songs."""
-    results = sp.current_user_top_tracks(limit=3)
+    results = sp.current_user_top_tracks(limit=10)
     songs = []
     for track in results['items']:
         track_name = track['name']
@@ -74,11 +74,11 @@ def analyze_song(song_index=0, season="Summer", gender="Female"):
     messages = [
         {
             "role": "system",
-            "content": "Provides song information simply, then after a hyphen, give short fashionable and popular outfit suggestions inspired by high fashion magazines like Vogue, Elle, or Harper's Bazaar. Use luxurious descriptors without mentioning specific brands."
+            "content": "Provides song information simply, then after a hyphen, give short fashionable and popular outfit suggestions inspired by high fashion magazines like Vogue, Elle, or Harper's Bazaar. Use luxurious descriptors without mentioning specific brands and artist's name. And control the answer length, make answer short and make sure the answer as a prompt won't make task failed as a result of Dalle safety system."
         },
         {
             "role": "user",
-            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an short outfit style for a {gender} during the {season} season that would look fashionable and runway-worthy, inspired by high fashion magazines."
+            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an short outfit style for a {gender} during the {season} season that would look fashionable and runway-worthy, inspired by high fashion magazines. without mentioning specific brands and artist's name. And won't make task failed as a result of Dalle safety system."
         }
     ]
 
