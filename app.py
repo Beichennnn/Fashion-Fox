@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template
-from fasionfox import get_top_songs, analyze_song, generate_outfit_image
+from fasionfox import get_top_songs, analyze_song, generate_outfit_image, create_top_songs_playlist
 import boto3
 import os
 from botocore.exceptions import NoCredentialsError
@@ -51,6 +51,19 @@ def top_songs():
     except Exception as e:
         print(f"Error fetching top songs: {str(e)}")
         return jsonify({"error": "Failed to fetch top songs"}), 500
+    
+@app.route('/generate-top-songs-playlist', methods=['GET'])
+def generate_top_songs_playlist():
+    """Endpoint to generate a playlist from the user's top songs."""
+    try:
+        playlist_url = create_top_songs_playlist()
+        if playlist_url:
+            return jsonify({"playlist_url": playlist_url})
+        else:
+            return jsonify({"error": "Failed to create playlist"}), 500
+    except Exception as e:
+        print(f"Error generating playlist: {str(e)}")
+        return jsonify({"error": "Failed to generate playlist"}), 500
 
 @app.route('/song-analysis', methods=['GET'])
 def song_analysis():

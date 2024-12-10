@@ -23,6 +23,21 @@
         <h1>Welcome to Outfit Explorer</h1>
         <p>Find outfit inspiration based on your favorite songs!</p>
     </header>
+
+    <div id="spotify-playlist-sidebar">
+        <iframe
+            id="spotify-playlist"
+            style="border-radius:12px;"
+            src=""
+            frameborder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy">
+        </iframe>
+    </div>
+    
+    
+    <audio id="songPlayer" controls style="display: none;"></audio>
+
     <canvas id="canvas3d"></canvas>
     <div id="song-analysis-container" style="padding: 20px;"></div>
     <div id="fashion-container" style="padding: 20px;"></div> <!-- Container for DALL-E generated images -->
@@ -58,6 +73,19 @@
             });
         });
     
+        function loadSpotifyPlaylist() {
+            fetch('/generate-top-songs-playlist')
+                .then(response => response.json())
+                .then(data => {
+                    const playlistUrl = data.playlist_url || '';
+                    const playlistIframe = document.getElementById('spotify-playlist');
+                    playlistIframe.src = playlistUrl; // Set the playlist URL
+                })
+                .catch(error => {
+                    console.error('Error fetching Spotify playlist:', error);
+                });
+        }
+
         function showTopSongs() {
             fetch('/top-songs')
                 .then(response => response.json())
@@ -69,12 +97,24 @@
                         title: 'Your Top Songs',
                         html: `<div>${songListHtml}</div>`,
                         showCloseButton: true,
-                        focusConfirm: false
+                        focusConfirm: false,
+                        didClose: () => {
+                            // Show the playlist sidebar after the top list is fetched
+                            const playlistSidebar = document.getElementById('spotify-playlist-sidebar');
+                            playlistSidebar.style.display = 'block';
+                            loadSpotifyPlaylist();
+                        }
                     });
                 })
                 .catch(error => console.error('Error fetching top songs:', error));
         }
-    
+
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSpotifyPlaylist();
+        });
+
         function showSongSelectionWithOptions() {
             Swal.fire({
                 title: "Loading...",
@@ -117,7 +157,7 @@
                     Swal.fire('Error', 'Failed to fetch songs. Please try again later.', 'error');
                 });
         }
-    
+
         window.selectOptionsAndAnalyze = function (songIndex) {
             swalWithBootstrapButtons.fire({
                 title: 'Choose Options',

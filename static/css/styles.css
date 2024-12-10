@@ -89,6 +89,7 @@ button, input, textarea {
     background-color: #fff; /* White background */
 }
 
+
 /* Add spacing between confirm and cancel buttons */
 .swal2-actions {
     justify-content: space-between; /* Spread buttons evenly */
@@ -121,3 +122,24 @@ button, input, textarea {
     max-height: 80vh; /* Limit height of pop-ups */
     overflow-y: auto; /* Enable vertical scrolling if needed */
 }
+
+#spotify-playlist-sidebar {
+    position: fixed;
+    top: 100px; /* Adjust to ensure it doesn't hide the header */
+    left: 0;
+    width: 300px; /* Adjust as needed */
+    height: calc(100% - 100px); /* Fill height below the header */
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    z-index: 10;
+    padding: 10px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+    display: none; /* Hidden by default */
+}
+
+#spotify-playlist {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 12px;
+}
+

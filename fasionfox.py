@@ -21,7 +21,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=spotify_keys["client_id"],
     client_secret=spotify_keys["client_secret"],
     redirect_uri=spotify_keys["redirect"],
-    scope="user-top-read"
+    scope="user-top-read playlist-modify-public"
 ))
 
 def get_top_songs():
@@ -36,6 +36,27 @@ def get_top_songs():
             "artist_name": artist_name
         })
     return songs
+
+def create_top_songs_playlist():
+    """Function to create a playlist with the user's top songs."""
+    try:
+        # Fetch user's top tracks
+        top_tracks = sp.current_user_top_tracks(limit=10)
+        track_uris = [track['uri'] for track in top_tracks['items']]
+
+        # Create a playlist
+        user_id = sp.me()['id']
+        playlist = sp.user_playlist_create(user_id, 'My Top Songs', public=True)
+        playlist_id = playlist['id']
+
+        # Add tracks to the playlist
+        sp.playlist_add_items(playlist_id, track_uris)
+
+        # Return the playlist ID
+        return f"https://open.spotify.com/embed/playlist/{playlist_id}"
+    except Exception as e:
+        print(f"Error creating playlist: {str(e)}")
+        return None
 
 def analyze_song(song_index=0, season="Summer", gender="Female"):
     """Function to analyze the user's favorite tracks and generate outfit suggestions based on the song index, season, and gender."""
@@ -78,7 +99,7 @@ def analyze_song(song_index=0, season="Summer", gender="Female"):
         },
         {
             "role": "user",
-            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an short outfit style for a {gender} during the {season} season that would look fashionable and runway-worthy, inspired by high fashion magazines. without mentioning specific brands and artist's name. And won't make task failed as a result of Dalle safety system."
+            "content": f"Based on the song '{track_name}' by {artist_name}, which is a {mood} song in the {genre} genre, suggest an short outfit style for a {gender} during the {season} season that would look fashionable and runway-worthy, inspired by high fashion magazines. Without mentioning specific brands and song artist's name. And the answer as a prompt won't make task failed as a result of Dalle safety system."
         }
     ]
 
