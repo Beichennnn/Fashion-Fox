@@ -88,3 +88,36 @@ button, input, textarea {
     border-radius: 5px; /* Rounded corners for the container */
     background-color: #fff; /* White background */
 }
+
+/* Add spacing between confirm and cancel buttons */
+.swal2-actions {
+    justify-content: space-between; /* Spread buttons evenly */
+    gap: 20px; /* Add spacing between buttons */
+}
+
+/* Confirm Button Styling */
+.swal2-confirm {
+    background-color: #007bff !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-size: 1rem; /* Slightly smaller button font */
+    padding: 8px 12px; /* Adjust padding for smaller button size */
+}
+
+/* Cancel Button Styling */
+.swal2-cancel {
+    background-color: #6c757d !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-size: 1rem; /* Slightly smaller button font */
+    padding: 8px 12px; /* Adjust padding for smaller button size */
+}
+
+
+/* Scrollable Pop-up for Large Content */
+.swal2-popup {
+    max-height: 80vh; /* Limit height of pop-ups */
+    overflow-y: auto; /* Enable vertical scrolling if needed */
+}
