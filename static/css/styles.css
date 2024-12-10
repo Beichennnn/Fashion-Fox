@@ -129,9 +129,10 @@ button, input, textarea {
     left: 0;
     width: 300px; /* Adjust as needed */
     height: calc(100% - 100px); /* Fill height below the header */
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background */
     z-index: 10;
     padding: 10px;
+    border-radius: 12px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
     display: none; /* Hidden by default */
 }
@@ -141,5 +142,5 @@ button, input, textarea {
     height: 100%;
     border: none;
     border-radius: 12px;
+    background: transparent;
 }
-
