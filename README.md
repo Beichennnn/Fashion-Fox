@@ -1,4 +1,4 @@
-# 🦊 Outfit Explorer
+# 🦊 Fashion Fox
 
 **Outfit Explorer** is a magical 🪄 web application where your favorite Spotify 🎵 tracks meet creative fashion ideas! Led by your guide, a curious **Fox 🦊**, explore a 3D world 🌍 where music inspires your wardrobe. Analyze your top songs, generate unique outfits, and jam out to your personal playlist — all in one interactive experience. 🎧✨
 
