@@ -144,3 +144,23 @@ button, input, textarea {
     border-radius: 12px;
     background: transparent;
 }
+
+.outfit-btn {
+    font-size: 1rem; /* Adjust font size to match the song list buttons */
+    padding: 5px 10px; /* Adjust padding for a consistent look */
+    margin: 5px 0; /* Add spacing between buttons */
+    border: 1px solid #ccc; /* Add a border for better visibility */
+    border-radius: 5px; /* Rounded corners for a cohesive style */
+    background-color: #f8f9fa; /* Light gray background */
+    color: #333; /* Dark text for better readability */
+    text-align: center; /* Center the text */
+    cursor: pointer; /* Add pointer cursor on hover */
+    transition: all 0.2s ease; /* Smooth transition for hover effect */
+}
+
+/* Hover effect for outfit buttons */
+.outfit-btn:hover {
+    background-color: #e2e6ea; /* Slightly darker background on hover */
+    color: #007bff; /* Change text color on hover */
+    border-color: #007bff; /* Highlight border on hover */
+}

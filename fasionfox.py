@@ -60,7 +60,7 @@ def create_top_songs_playlist():
 
 def analyze_song(song_index=0, season="Summer", gender="Female"):
     """Function to analyze the user's favorite tracks and generate outfit suggestions based on the song index, season, and gender."""
-    results = sp.current_user_top_tracks(limit=10)  # Ensure you fetch enough songs
+    results = sp.current_user_top_tracks(limit=10)  # Ensure fetch enough songs
     if song_index >= len(results['items']):
         return "Invalid song index"
 
